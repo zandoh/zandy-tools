@@ -1,0 +1,35 @@
+## Interface: 110005
+## Title: ZandyTools
+## Notes: A modular suite of tools for World of Warcraft Retail
+## Author: Zandoh
+## Version: @project-version@
+## SavedVariables: ZandyToolsDB
+## OptionalDeps: Ace3
+## X-Category: Interface Enhancements
+## X-License: MIT
+## X-Website: https://github.com/yourusername/ZandyTools
+## X-Curse-Project-ID: 1452474
+## X-Wago-ID: 96d2APGO
+
+# External Libraries
+Libs\LibStub\LibStub.lua
+Libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
+Libs\AceAddon-3.0\AceAddon-3.0.xml
+Libs\AceEvent-3.0\AceEvent-3.0.xml
+Libs\AceConsole-3.0\AceConsole-3.0.xml
+Libs\AceDB-3.0\AceDB-3.0.xml
+Libs\AceDBOptions-3.0\AceDBOptions-3.0.xml
+Libs\AceConfig-3.0\AceConfig-3.0.xml
+Libs\AceGUI-3.0\AceGUI-3.0.xml
+
+# Core System Files
+Core\Init.lua
+Core\Database.lua
+Core\ModuleLoader.lua
+Core\Config.lua
+
+# Modules (lazy-loaded)
+Modules\ExampleTool.lua
+
+# Main Entry Point
+Main.lua
