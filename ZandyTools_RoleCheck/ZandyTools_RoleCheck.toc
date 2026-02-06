@@ -1,0 +1,9 @@
+## Interface: 120000
+## Title: ZandyTools - Role Check
+## Notes: Automatically respond to role checks
+## Author: Zandoh
+## Version: @project-version@
+## Dependencies: ZandyTools
+## LoadOnDemand: 1
+
+RoleCheck.lua
