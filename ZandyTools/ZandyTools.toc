@@ -7,7 +7,7 @@
 ## OptionalDeps: Ace3
 ## X-Category: Interface Enhancements
 ## X-License: MIT
-## X-Website: https://github.com/yourusername/ZandyTools
+## X-Website: https://github.com/zandoh/ZandyTools
 ## X-Curse-Project-ID: 1452474
 ## X-Wago-ID: 96d2APGO
 
