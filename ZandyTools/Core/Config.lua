@@ -24,7 +24,7 @@ local function GetOptionsTable()
 		args = {
 			header = {
 				type = "description",
-				name = "|cff00ccffZandyTools|r v" .. ZandyTools.Version .. "\n" ..
+				name = "|cff00ccffZandyTools|r " .. ZandyTools.Version .. "\n" ..
 					   "A modular suite of tools\n",
 				fontSize = "medium",
 				order = 1,
