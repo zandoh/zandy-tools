@@ -7,30 +7,6 @@ on:
     branches: [ main, develop ]
 
 jobs:
-  lint:
-    name: Lint Lua Files
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install Lua
-        uses: leafo/gh-actions-lua@v10
-        with:
-          luaVersion: "5.1"
-
-      - name: Install LuaRocks
-        uses: leafo/gh-actions-luarocks@v4
-
-      - name: Install luacheck
-        run: luarocks install luacheck
-
-      - name: Run luacheck
-        run: |
-          luacheck . --exclude-files .luacheckrc --no-color || true
-        continue-on-error: true
-
   validate:
     name: Validate Addon Structure
     runs-on: ubuntu-latest
@@ -39,32 +15,40 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Check TOC file exists
+      - name: Check main addon TOC
         run: |
-          if [ ! -f "ZandyTools.toc" ]; then
-            echo "Error: ZandyTools.toc not found"
+          if [ ! -f "ZandyTools/ZandyTools.toc" ]; then
+            echo "Error: ZandyTools/ZandyTools.toc not found"
             exit 1
           fi
-          echo "✓ TOC file found"
+          echo "TOC file found"
 
-      - name: Validate TOC file format
+      - name: Validate TOC format
         run: |
-          if ! grep -q "## Interface:" ZandyTools.toc; then
+          if ! grep -q "## Interface:" ZandyTools/ZandyTools.toc; then
             echo "Error: TOC missing Interface version"
             exit 1
           fi
-          echo "✓ TOC file format valid"
+          echo "TOC file format valid"
 
-      - name: Check required files
+      - name: Check core files
         run: |
-          required_files=("Main.lua" "Core/Init.lua" "Core/ModuleLoader.lua" "Core/Database.lua" "Core/Config.lua")
-          for file in "${required_files[@]}"; do
+          files=("ZandyTools/Main.lua" "ZandyTools/Core/Init.lua" "ZandyTools/Core/ModuleLoader.lua" "ZandyTools/Core/Database.lua" "ZandyTools/Core/Config.lua")
+          for file in "${files[@]}"; do
             if [ ! -f "$file" ]; then
-              echo "Error: Required file $file not found"
+              echo "Error: $file not found"
               exit 1
             fi
           done
-          echo "✓ All required files present"
+          echo "All core files present"
+
+      - name: Check module addon
+        run: |
+          if [ ! -f "ZandyTools_RoleCheck/ZandyTools_RoleCheck.toc" ]; then
+            echo "Error: RoleCheck module TOC not found"
+            exit 1
+          fi
+          echo "Module addon found"
 
   package-test:
     name: Test Package Creation
@@ -82,10 +66,4 @@ jobs:
           chmod +x release.sh
 
       - name: Create test package
-        run: |
-          # Create a test package without uploading
-          ./release.sh -d -z
-        env:
-          CF_API_KEY: ${{ secrets.CF_API_KEY }}
-          WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}
-          GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
+        run: ./release.sh -d -z
