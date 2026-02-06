@@ -1,0 +1,66 @@
+{
+  "Lua.diagnostics.globals": [
+    // WoW API Globals
+    "C_AddOns",
+    "CreateFrame",
+    "GetAddOnMetadata",
+    "UIParent",
+    "SLASH_ZANDYTOOLS1",
+    "SlashCmdList",
+    "StaticPopupDialogs",
+    "StaticPopup_Show",
+    "GetLocale",
+    "InCombatLockdown",
+    "PlaySound",
+    "SOUNDKIT",
+    "GameTooltip",
+    "DEFAULT_CHAT_FRAME",
+    "UnitName",
+    "UnitGUID",
+    "GetMoney",
+    "GetRealmName",
+    "C_QuestLog",
+    "C_Timer",
+    "CanMerchantRepair",
+    "GetRepairAllCost",
+    "RepairAllItems",
+    "CanGuildBankRepair",
+    "GetGuildBankWithdrawMoney",
+
+    // Ace3 Globals
+    "LibStub",
+    "AceGUI",
+    "AceConfigDialog",
+    "AceConfigRegistry",
+    "AceDB"
+  ],
+  "Lua.diagnostics.disable": [
+    "lowercase-global",
+    "undefined-global"
+  ],
+  "Lua.workspace.library": [
+    "${workspaceFolder}",
+    "${workspaceFolder}/Libs"
+  ],
+  "Lua.workspace.checkThirdParty": false,
+  "Lua.runtime.version": "Lua 5.1",
+  "Lua.hint.enable": true,
+  "Lua.telemetry.enable": false,
+  "files.associations": {
+    "*.toc": "properties",
+    "*.lua": "lua"
+  },
+  "files.exclude": {
+    "**/.release": true,
+    "**/.pkgmeta": false
+  },
+  "editor.insertSpaces": false,
+  "editor.detectIndentation": false,
+  "editor.tabSize": 4,
+  "[lua]": {
+    "editor.defaultFormatter": "sumneko.lua",
+    "editor.formatOnSave": true,
+    "editor.tabSize": 4,
+    "editor.insertSpaces": false
+  }
+}

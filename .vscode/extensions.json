@@ -1,0 +1,9 @@
+{
+  "recommendations": [
+    "sumneko.lua",
+    "actboy168.lua-debug",
+    "koihik.vscode-lua-format",
+    "dwenegar.vscode-luacheck",
+    "ketho.wow-api"
+  ]
+}
