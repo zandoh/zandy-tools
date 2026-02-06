@@ -60,6 +60,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install SVN
+        run: sudo apt-get install -y subversion
+
       - name: Install packager
         run: |
           curl -s https://raw.githubusercontent.com/BigWigsMods/packager/master/release.sh -o release.sh
