@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  lint:
+    name: Lint Lua Files
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Lua
+        uses: leafo/gh-actions-lua@v10
+        with:
+          luaVersion: "5.1"
+
+      - name: Install LuaRocks
+        uses: leafo/gh-actions-luarocks@v4
+
+      - name: Install luacheck
+        run: luarocks install luacheck
+
+      - name: Run luacheck
+        run: |
+          luacheck . --exclude-files .luacheckrc --no-color || true
+        continue-on-error: true
+
+  validate:
+    name: Validate Addon Structure
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check TOC file exists
+        run: |
+          if [ ! -f "ZandyTools.toc" ]; then
+            echo "Error: ZandyTools.toc not found"
+            exit 1
+          fi
+          echo "✓ TOC file found"
+
+      - name: Validate TOC file format
+        run: |
+          if ! grep -q "## Interface:" ZandyTools.toc; then
+            echo "Error: TOC missing Interface version"
+            exit 1
+          fi
+          echo "✓ TOC file format valid"
+
+      - name: Check required files
+        run: |
+          required_files=("Main.lua" "Core/Init.lua" "Core/ModuleLoader.lua" "Core/Database.lua" "Core/Config.lua")
+          for file in "${required_files[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "Error: Required file $file not found"
+              exit 1
+            fi
+          done
+          echo "✓ All required files present"
+
+  package-test:
+    name: Test Package Creation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install packager
+        run: |
+          curl -s https://raw.githubusercontent.com/BigWigsMods/packager/master/release.sh -o release.sh
+          chmod +x release.sh
+
+      - name: Create test package
+        run: |
+          # Create a test package without uploading
+          ./release.sh -d -z
+        env:
+          CF_API_KEY: ${{ secrets.CF_API_KEY }}
+          WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}
+          GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
