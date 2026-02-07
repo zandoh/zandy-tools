@@ -15,6 +15,11 @@ ZandyTools.moduleRegistry = {
 		displayName = "Auto Role Check",
 		description = "Automatically respond to role checks with your preferred role",
 	},
+	KeystoneReminder = {
+		addonName = "ZandyTools_KeystoneReminder",
+		displayName = "Keystone Reminder",
+		description = "Remind you to check your keystone after completing a Mythic+ dungeon",
+	},
 }
 
 -- Track which modules have been loaded
