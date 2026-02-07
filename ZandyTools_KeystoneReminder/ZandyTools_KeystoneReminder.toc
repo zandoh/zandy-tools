@@ -1,0 +1,9 @@
+## Interface: 120000
+## Title: ZandyTools - Keystone Reminder
+## Notes: Remind you to check your keystone after completing a Mythic+ dungeon
+## Author: Zandoh
+## Version: @project-version@
+## Dependencies: ZandyTools
+## LoadOnDemand: 1
+
+KeystoneReminder.lua
