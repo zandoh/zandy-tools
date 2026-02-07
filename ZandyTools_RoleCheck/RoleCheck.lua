@@ -1,8 +1,9 @@
 --[[
-	Modules/RoleCheck.lua
+	RoleCheck.lua
 
-	Automatically responds to group role checks with pre-configured roles.
-	Useful for hybrid classes that want to consistently sign up for specific roles.
+	Automatically responds to LFG role checks and group role polls with
+	pre-configured roles. Useful for hybrid classes that want to consistently
+	sign up for specific roles.
 ]]
 
 local ADDON_NAME = "ZandyTools"
@@ -28,11 +29,34 @@ function RoleCheck:Initialize()
 end
 
 function RoleCheck:Enable()
+	ZandyTools.RegisterEvent(self, "LFG_ROLE_CHECK_SHOW", "OnLFGRoleCheckShow")
 	ZandyTools.RegisterEvent(self, "ROLE_POLL_BEGIN", "OnRolePollBegin")
 end
 
 function RoleCheck:Disable()
 	ZandyTools.UnregisterAllEvents(self)
+end
+
+function RoleCheck:OnLFGRoleCheckShow()
+	if UnitAffectingCombat("player") then
+		ZandyTools:Print("Cannot set role while in combat")
+		return
+	end
+
+	local hasRole = false
+	for _, enabled in pairs(self.db.roles) do
+		if enabled then hasRole = true break end
+	end
+	if not hasRole then return end
+
+	-- Set LFG roles: preserve leader flag, set configured roles
+	local leader = GetLFGRoles()
+	SetLFGRoles(leader,
+		self.db.roles.TANK or false,
+		self.db.roles.HEALER or false,
+		self.db.roles.DAMAGER or false
+	)
+	CompleteLFGRoleCheck(true)
 end
 
 function RoleCheck:OnRolePollBegin()
@@ -41,11 +65,17 @@ function RoleCheck:OnRolePollBegin()
 		return
 	end
 
-	local rolesSet = {}
-	for role, enabled in pairs(self.db.roles) do
-		if enabled then
+	-- Role poll only supports a single role
+	local priority = { "TANK", "HEALER", "DAMAGER" }
+	for _, role in ipairs(priority) do
+		if self.db.roles[role] then
 			UnitSetRole("player", role)
-			table.insert(rolesSet, role)
+			C_Timer.After(0, function()
+				if RolePollPopup then
+					StaticPopupSpecial_Hide(RolePollPopup)
+				end
+			end)
+			return
 		end
 	end
 end
