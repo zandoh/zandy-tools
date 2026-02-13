@@ -116,8 +116,6 @@ local function CountSockets(itemLink)
 	for _, key in ipairs(SOCKET_STAT_KEYS) do
 		count = count + (stats[key] or 0)
 	end
-	-- Also count filled sockets (gems already inserted)
-	count = count + CountGems(itemLink)
 	return count
 end
 
