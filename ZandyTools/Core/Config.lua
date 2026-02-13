@@ -60,6 +60,7 @@ local function GetOptionsTable()
 						else
 							ZandyTools:DisableModule(moduleName)
 						end
+						LibStub("AceConfigRegistry-3.0"):NotifyChange(ADDON_NAME)
 					end,
 				},
 			},
