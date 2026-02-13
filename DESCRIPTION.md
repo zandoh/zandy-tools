@@ -25,6 +25,16 @@ Shows a popup after completing a Mythic+ dungeon with your new keystone's dungeo
 - Dismiss with a single click or press Escape
 - Simple, non-intrusive — just a quick reminder, not a whole UI
 
+### Gear Check
+
+Displays visual indicators on the character panel when equipped gear is missing enchants, gems, or available sockets. Never open the Great Vault and realize you forgot to enchant your new ring.
+
+- Shows letter flags (E, G, S) on slot buttons for missing enchants, gems, and sockets
+- Hover over an indicator for a plain-English explanation
+- Configurable item level threshold to skip low-level gear
+- Toggle each check type independently (enchants, gems, sockets)
+- Updates dynamically when you equip or modify gear
+
 ## Design
 
 - **Truly modular** — each module is a separate LoadOnDemand addon. If you disable a module, it is never loaded. Zero memory, zero CPU.

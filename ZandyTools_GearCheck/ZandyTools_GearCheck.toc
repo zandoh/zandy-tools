@@ -1,0 +1,9 @@
+## Interface: 120001
+## Title: ZandyTools - Gear Check
+## Notes: Show missing enchants, gems, and sockets on the character panel
+## Author: Zandoh
+## Version: @project-version@
+## Dependencies: ZandyTools
+## LoadOnDemand: 1
+
+GearCheck.lua

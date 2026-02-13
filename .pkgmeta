@@ -24,3 +24,4 @@ move-folders:
   ZandyTools/ZandyTools: ZandyTools
   ZandyTools/ZandyTools_RoleCheck: ZandyTools_RoleCheck
   ZandyTools/ZandyTools_KeystoneReminder: ZandyTools_KeystoneReminder
+  ZandyTools/ZandyTools_GearCheck: ZandyTools_GearCheck

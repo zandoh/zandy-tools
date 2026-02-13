@@ -20,6 +20,11 @@ ZandyTools.moduleRegistry = {
 		displayName = "Keystone Reminder",
 		description = "Remind you to check your keystone after completing a Mythic+ dungeon",
 	},
+	GearCheck = {
+		addonName = "ZandyTools_GearCheck",
+		displayName = "Gear Check",
+		description = "Show missing enchants, gems, and sockets on the character panel",
+	},
 }
 
 -- Track which modules have been loaded
