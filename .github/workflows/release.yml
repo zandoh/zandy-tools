@@ -4,6 +4,16 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      discord_env:
+        description: 'Discord webhook environment'
+        required: true
+        default: 'test'
+        type: choice
+        options:
+          - test
+          - prod
 
 permissions:
   contents: write
@@ -44,3 +54,88 @@ jobs:
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notify Discord
+        if: success()
+        env:
+          DISCORD_WEBHOOK_URL_PROD: ${{ secrets.DISCORD_WEBHOOK_URL_PROD }}
+          DISCORD_WEBHOOK_URL_TEST: ${{ secrets.DISCORD_WEBHOOK_URL_TEST }}
+          DISCORD_ENV_INPUT: ${{ inputs.discord_env }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+
+          # Determine discord environment:
+          #   - Manual dispatch: use the selected input
+          #   - Tag push: always prod
+          if [ -n "$DISCORD_ENV_INPUT" ]; then
+            DISCORD_ENV="$DISCORD_ENV_INPUT"
+          else
+            DISCORD_ENV="prod"
+          fi
+
+          if [ "$DISCORD_ENV" = "prod" ]; then
+            WEBHOOK_URL="$DISCORD_WEBHOOK_URL_PROD"
+          else
+            WEBHOOK_URL="$DISCORD_WEBHOOK_URL_TEST"
+          fi
+
+          if [ -z "$WEBHOOK_URL" ]; then
+            echo "::warning::No Discord webhook URL set for env=${DISCORD_ENV}. Skipping notification."
+            exit 0
+          fi
+
+          echo "Sending Discord notification to ${DISCORD_ENV} channel"
+
+          # Get previous tag
+          PREV_TAG=$(git tag --sort=-v:refname | grep '^v' | sed -n '2p')
+
+          # Determine bump type by comparing semver components
+          EMOJI="🔧"
+          COLOR=5763719  # green (patch)
+          if [ -n "$PREV_TAG" ]; then
+            PREV_VERSION="${PREV_TAG#v}"
+            CUR_MAJOR="${VERSION%%.*}"
+            CUR_REST="${VERSION#*.}"
+            CUR_MINOR="${CUR_REST%%.*}"
+            PREV_MAJOR="${PREV_VERSION%%.*}"
+            PREV_REST="${PREV_VERSION#*.}"
+            PREV_MINOR="${PREV_REST%%.*}"
+
+            if [ "$CUR_MAJOR" -gt "$PREV_MAJOR" ]; then
+              EMOJI="🚀"
+              COLOR=15548997  # red (major)
+            elif [ "$CUR_MINOR" -gt "$PREV_MINOR" ]; then
+              EMOJI="🤏"
+              COLOR=3447003   # blue (minor)
+            fi
+          fi
+
+          # Fetch release notes from the GitHub Release
+          BODY=$(gh api "repos/${{ github.repository }}/releases/tags/${TAG}" --jq '.body // ""')
+
+          # Truncate to Discord's 4096 char embed description limit
+          if [ "${#BODY}" -gt 4096 ]; then
+            BODY="${BODY:0:4093}..."
+          fi
+
+          # Build the JSON payload with jq to handle escaping
+          RELEASE_URL="https://github.com/${{ github.repository }}/releases/tag/${TAG}"
+          PAYLOAD=$(jq -nc \
+            --arg title "${EMOJI} ZandyTools ${TAG} Released!" \
+            --arg desc "$BODY" \
+            --arg url "$RELEASE_URL" \
+            --argjson color "$COLOR" \
+            '{
+              embeds: [{
+                title: $title,
+                description: $desc,
+                url: $url,
+                color: $color
+              }]
+            }')
+
+          curl -sf -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            "$WEBHOOK_URL"
