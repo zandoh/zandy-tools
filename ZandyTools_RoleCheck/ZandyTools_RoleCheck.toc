@@ -1,4 +1,4 @@
-## Interface: 120000
+## Interface: 120001
 ## Title: ZandyTools - Role Check
 ## Notes: Automatically respond to role checks
 ## Author: Zandoh
