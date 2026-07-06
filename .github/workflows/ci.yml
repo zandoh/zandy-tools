@@ -6,59 +6,144 @@ on:
   pull_request:
     branches: [ main, develop ]
 
-jobs:
-  validate:
-    name: Validate Addon Structure
-    runs-on: ubuntu-latest
+permissions: {}
 
+jobs:
+  lint:
+    name: Lint (luacheck)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
 
-      - name: Check main addon TOC
+      - name: Run luacheck
+        uses: lunarmodules/luacheck@cc089e3f65acdd1ef8716cc73a3eca24a6b845e4 # v1.2.0
+        with:
+          args: . --no-color -q
+
+  format:
+    name: Format (StyLua)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Install StyLua
         run: |
-          if [ ! -f "ZandyTools/ZandyTools.toc" ]; then
-            echo "Error: ZandyTools/ZandyTools.toc not found"
+          curl -sSfL -o /tmp/stylua.zip https://github.com/JohnnyMorganz/StyLua/releases/download/v2.5.2/stylua-linux-x86_64.zip
+          unzip -o /tmp/stylua.zip -d /tmp/stylua-bin
+
+      - name: Check formatting
+        run: /tmp/stylua-bin/stylua --check .
+
+  toc-graph:
+    name: TOC graph (dead files)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Check TOC file graph
+        run: ./scripts/check-toc.sh
+
+  addon-security:
+    name: Security (addon rules)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Forbid dynamic code execution
+        run: |
+          matches=$(grep -rnE '\b(loadstring|RunScript)[[:space:]]*\(' --include='*.lua' --exclude-dir=Libs . || true)
+          if [ -n "$matches" ]; then
+            echo "$matches"
+            echo "::error::dynamic code execution (loadstring/RunScript) is forbidden in addon code"
             exit 1
           fi
-          echo "TOC file found"
+          echo "No dynamic code execution in addon code"
 
-      - name: Validate TOC format
-        run: |
-          if ! grep -q "## Interface:" ZandyTools/ZandyTools.toc; then
-            echo "Error: TOC missing Interface version"
-            exit 1
-          fi
-          echo "TOC file format valid"
+  workflow-security:
+    name: Security (workflows, zizmor)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
 
-      - name: Check core files
-        run: |
-          files=("ZandyTools/Main.lua" "ZandyTools/Core/Init.lua" "ZandyTools/Core/ModuleLoader.lua" "ZandyTools/Core/Database.lua" "ZandyTools/Core/Config.lua")
-          for file in "${files[@]}"; do
-            if [ ! -f "$file" ]; then
-              echo "Error: $file not found"
-              exit 1
-            fi
-          done
-          echo "All core files present"
+      - name: Run zizmor
+        uses: zizmorcore/zizmor-action@192e21d79ab29983730a13d1382995c2307fbcaa # v0.5.7
+        with:
+          min-severity: low
 
-      - name: Check module addon
+  secret-scan:
+    name: Security (secrets, gitleaks)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  type-check:
+    name: Type check (emmylua, advisory)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Install emmylua_check
         run: |
-          if [ ! -f "ZandyTools_RoleCheck/ZandyTools_RoleCheck.toc" ]; then
-            echo "Error: RoleCheck module TOC not found"
-            exit 1
-          fi
-          echo "Module addon found"
+          curl -sSfL https://github.com/EmmyLuaLs/emmylua-analyzer-rust/releases/download/0.23.2/emmylua_check-linux-x64.tar.gz | tar xz -C /tmp
+
+      - name: Run emmylua_check
+        run: /tmp/emmylua_check --warnings-as-errors .
 
   package-test:
     name: Test Package Creation
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Install SVN
         run: sudo apt-get install -y subversion
