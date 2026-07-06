@@ -74,8 +74,6 @@ function ZandyTools:HandleSlashCommand(input)
 	self:OpenConfig()
 end
 
-
-
 --[[
 	Print a message to chat with addon prefix
 

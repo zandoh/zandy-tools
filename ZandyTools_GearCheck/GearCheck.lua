@@ -15,8 +15,8 @@ local GearCheck = {
 }
 
 local ICON_PATH_ENCHANT = "Interface\\Icons\\Trade_Engraving"
-local ICON_PATH_GEM     = "Interface\\Icons\\INV_Misc_Gem_Diamond_07"
-local ICON_PATH_SOCKET  = "Interface\\Icons\\INV_Misc_Gem_01"
+local ICON_PATH_GEM = "Interface\\Icons\\INV_Misc_Gem_Diamond_07"
+local ICON_PATH_SOCKET = "Interface\\Icons\\INV_Misc_Gem_01"
 
 local INDICATOR_ICON_SIZE = 18
 local SETTINGS_ICON_SIZE = 16
@@ -26,7 +26,9 @@ local function IconString(path, size)
 end
 
 local function IsWeapon(itemLink)
-	if not itemLink then return false end
+	if not itemLink then
+		return false
+	end
 	local _, _, _, itemEquipLoc = C_Item.GetItemInfoInstant(itemLink)
 	local weaponLocs = {
 		INVTYPE_WEAPON = true,
@@ -40,19 +42,93 @@ local function IsWeapon(itemLink)
 end
 
 local SLOT_CONFIG = {
-	{ slotID = INVSLOT_HEAD,      frameName = "CharacterHeadSlot",           enchantable = false, maxSockets = 1, side = "left" },
-	{ slotID = INVSLOT_NECK,      frameName = "CharacterNeckSlot",           enchantable = false, maxSockets = 2, side = "left" },
-	{ slotID = INVSLOT_BACK,      frameName = "CharacterBackSlot",           enchantable = true,  maxSockets = 0, side = "left" },
-	{ slotID = INVSLOT_CHEST,     frameName = "CharacterChestSlot",          enchantable = true,  maxSockets = 0, side = "left" },
-	{ slotID = INVSLOT_WRIST,     frameName = "CharacterWristSlot",          enchantable = true,  maxSockets = 1, side = "left" },
-	{ slotID = INVSLOT_WAIST,     frameName = "CharacterWaistSlot",          enchantable = false, maxSockets = 1, side = "right" },
-	{ slotID = INVSLOT_LEGS,      frameName = "CharacterLegsSlot",           enchantable = true,  maxSockets = 0, side = "right" },
-	{ slotID = INVSLOT_FEET,      frameName = "CharacterFeetSlot",           enchantable = true,  maxSockets = 0, side = "right" },
-	{ slotID = INVSLOT_FINGER1,   frameName = "CharacterFinger0Slot",        enchantable = true,  maxSockets = 2, side = "right" },
-	{ slotID = INVSLOT_FINGER2,   frameName = "CharacterFinger1Slot",        enchantable = true,  maxSockets = 2, side = "right" },
-	{ slotID = INVSLOT_MAINHAND,  frameName = "CharacterMainHandSlot",       enchantable = true,  maxSockets = 0, side = "bottom" },
-	{ slotID = INVSLOT_OFFHAND,   frameName = "CharacterSecondaryHandSlot",  enchantable = true,  maxSockets = 0, side = "bottom",
-		enchantCondition = function(itemLink) return IsWeapon(itemLink) end },
+	{
+		slotID = INVSLOT_HEAD,
+		frameName = "CharacterHeadSlot",
+		enchantable = false,
+		maxSockets = 1,
+		side = "left",
+	},
+	{
+		slotID = INVSLOT_NECK,
+		frameName = "CharacterNeckSlot",
+		enchantable = false,
+		maxSockets = 2,
+		side = "left",
+	},
+	{
+		slotID = INVSLOT_BACK,
+		frameName = "CharacterBackSlot",
+		enchantable = true,
+		maxSockets = 0,
+		side = "left",
+	},
+	{
+		slotID = INVSLOT_CHEST,
+		frameName = "CharacterChestSlot",
+		enchantable = true,
+		maxSockets = 0,
+		side = "left",
+	},
+	{
+		slotID = INVSLOT_WRIST,
+		frameName = "CharacterWristSlot",
+		enchantable = true,
+		maxSockets = 1,
+		side = "left",
+	},
+	{
+		slotID = INVSLOT_WAIST,
+		frameName = "CharacterWaistSlot",
+		enchantable = false,
+		maxSockets = 1,
+		side = "right",
+	},
+	{
+		slotID = INVSLOT_LEGS,
+		frameName = "CharacterLegsSlot",
+		enchantable = true,
+		maxSockets = 0,
+		side = "right",
+	},
+	{
+		slotID = INVSLOT_FEET,
+		frameName = "CharacterFeetSlot",
+		enchantable = true,
+		maxSockets = 0,
+		side = "right",
+	},
+	{
+		slotID = INVSLOT_FINGER1,
+		frameName = "CharacterFinger0Slot",
+		enchantable = true,
+		maxSockets = 2,
+		side = "right",
+	},
+	{
+		slotID = INVSLOT_FINGER2,
+		frameName = "CharacterFinger1Slot",
+		enchantable = true,
+		maxSockets = 2,
+		side = "right",
+	},
+	{
+		slotID = INVSLOT_MAINHAND,
+		frameName = "CharacterMainHandSlot",
+		enchantable = true,
+		maxSockets = 0,
+		side = "bottom",
+	},
+	{
+		slotID = INVSLOT_OFFHAND,
+		frameName = "CharacterSecondaryHandSlot",
+		enchantable = true,
+		maxSockets = 0,
+		side = "bottom",
+		enchantCondition = function(itemLink)
+			return IsWeapon(itemLink)
+		end,
+	},
 }
 
 local SOCKET_STAT_KEYS = {
@@ -67,14 +143,17 @@ local SOCKET_STAT_KEYS = {
 }
 
 local function ParseItemLink(itemLink)
-	if not itemLink then return nil end
+	if not itemLink then
+		return nil
+	end
 	-- item:itemID:enchantID:gem1:gem2:gem3:gem4:...
+	local field = itemLink:match("item:([^|]+)")
+	if not field then
+		return nil
+	end
 	local fields = {}
-	for field in itemLink:gmatch("item:([^|]+)") do
-		for value in field:gmatch("([^:]*):?") do
-			fields[#fields + 1] = value
-		end
-		break
+	for value in field:gmatch("([^:]*):?") do
+		fields[#fields + 1] = value
 	end
 	return #fields > 0 and fields or nil
 end
@@ -82,19 +161,25 @@ end
 -- Check if an item is missing an enchant
 -- fields index: 1=itemID, 2=enchantID, 3-6=gem IDs
 local function IsMissingEnchant(itemLink, slotConfig)
-	if not slotConfig.enchantable then return false end
+	if not slotConfig.enchantable then
+		return false
+	end
 	if slotConfig.enchantCondition and not slotConfig.enchantCondition(itemLink) then
 		return false
 	end
 	local fields = ParseItemLink(itemLink)
-	if not fields then return false end
+	if not fields then
+		return false
+	end
 	local enchantID = fields[2]
 	return not enchantID or enchantID == "" or enchantID == "0"
 end
 
 local function CountGems(itemLink)
 	local fields = ParseItemLink(itemLink)
-	if not fields then return 0 end
+	if not fields then
+		return 0
+	end
 	local count = 0
 	for i = 3, 6 do
 		local gemID = fields[i]
@@ -106,7 +191,9 @@ local function CountGems(itemLink)
 end
 
 local function CountSockets(itemLink)
-	if not itemLink then return 0 end
+	if not itemLink then
+		return 0
+	end
 	local stats = C_Item.GetItemStats(itemLink)
 	if not stats then
 		-- Fallback: assume socket count equals gem count (no false positive)
@@ -122,10 +209,14 @@ end
 -- Check a single slot and return issues (or nil if all good / skipped)
 local function CheckSlot(slotID, slotConfig, settings)
 	-- Skip checks if player is below minimum level
-	if UnitLevel("player") < settings.minLevel then return nil end
+	if UnitLevel("player") < settings.minLevel then
+		return nil
+	end
 
 	local itemLink = GetInventoryItemLink("player", slotID)
-	if not itemLink then return nil end
+	if not itemLink then
+		return nil
+	end
 
 	local result = nil
 
@@ -206,17 +297,27 @@ function GearCheck:Initialize()
 	self.db = ZandyTools:GetModuleSettings(self.name)
 
 	-- Set defaults
-	if self.db.checkEnchants == nil then self.db.checkEnchants = true end
-	if self.db.checkGems == nil then self.db.checkGems = true end
-	if self.db.checkSockets == nil then self.db.checkSockets = true end
-	if self.db.minLevel == nil then self.db.minLevel = 70 end
+	if self.db.checkEnchants == nil then
+		self.db.checkEnchants = true
+	end
+	if self.db.checkGems == nil then
+		self.db.checkGems = true
+	end
+	if self.db.checkSockets == nil then
+		self.db.checkSockets = true
+	end
+	if self.db.minLevel == nil then
+		self.db.minLevel = 70
+	end
 
 	self.indicators = {}
 	self.hooked = false
 end
 
 function GearCheck:CreateIndicators()
-	if self.indicatorsCreated then return end
+	if self.indicatorsCreated then
+		return
+	end
 
 	for _, slotConfig in ipairs(SLOT_CONFIG) do
 		local button = _G[slotConfig.frameName]
@@ -230,7 +331,9 @@ end
 
 function GearCheck:UpdateSlot(slotConfig)
 	local indicator = self.indicators[slotConfig.slotID]
-	if not indicator then return end
+	if not indicator then
+		return
+	end
 
 	local issues = CheckSlot(slotConfig.slotID, slotConfig, self.db)
 
@@ -292,7 +395,9 @@ function GearCheck:UpdateSlot(slotConfig)
 end
 
 function GearCheck:UpdateAllSlots()
-	if not self.indicatorsCreated then return end
+	if not self.indicatorsCreated then
+		return
+	end
 	for _, slotConfig in ipairs(SLOT_CONFIG) do
 		self:UpdateSlot(slotConfig)
 	end
@@ -307,17 +412,25 @@ end
 -- Hook CharacterFrame show/hide. Deferred until CharacterFrame exists
 -- because it is a LoadOnDemand addon (Blizzard_CharacterFrame).
 function GearCheck:HookCharacterFrame()
-	if self.hooked then return end
-	if not CharacterFrame then return end
+	if self.hooked then
+		return
+	end
+	if not CharacterFrame then
+		return
+	end
 
 	hooksecurefunc(CharacterFrame, "Show", function()
-		if not self.enabled then return end
+		if not self.enabled then
+			return
+		end
 		self:CreateIndicators()
 		self:UpdateAllSlots()
 	end)
 
 	CharacterFrame:HookScript("OnHide", function()
-		if not self.enabled then return end
+		if not self.enabled then
+			return
+		end
 		self:HideAllIndicators()
 	end)
 
@@ -378,10 +491,14 @@ function GearCheck:GetOptions()
 				name = IconString(ICON_PATH_ENCHANT, SETTINGS_ICON_SIZE) .. " Enchants",
 				desc = "Show missing enchant warnings",
 				order = 1,
-				get = function() return self.db.checkEnchants end,
+				get = function()
+					return self.db.checkEnchants
+				end,
 				set = function(_, value)
 					self.db.checkEnchants = value
-					if CharacterFrame and CharacterFrame:IsShown() then self:UpdateAllSlots() end
+					if CharacterFrame and CharacterFrame:IsShown() then
+						self:UpdateAllSlots()
+					end
 				end,
 			},
 			checkGems = {
@@ -389,10 +506,14 @@ function GearCheck:GetOptions()
 				name = IconString(ICON_PATH_GEM, SETTINGS_ICON_SIZE) .. " Gems",
 				desc = "Show empty gem socket warnings",
 				order = 2,
-				get = function() return self.db.checkGems end,
+				get = function()
+					return self.db.checkGems
+				end,
 				set = function(_, value)
 					self.db.checkGems = value
-					if CharacterFrame and CharacterFrame:IsShown() then self:UpdateAllSlots() end
+					if CharacterFrame and CharacterFrame:IsShown() then
+						self:UpdateAllSlots()
+					end
 				end,
 			},
 			checkSockets = {
@@ -400,10 +521,14 @@ function GearCheck:GetOptions()
 				name = IconString(ICON_PATH_SOCKET, SETTINGS_ICON_SIZE) .. " Sockets",
 				desc = "Show warnings when sockets can be added",
 				order = 3,
-				get = function() return self.db.checkSockets end,
+				get = function()
+					return self.db.checkSockets
+				end,
 				set = function(_, value)
 					self.db.checkSockets = value
-					if CharacterFrame and CharacterFrame:IsShown() then self:UpdateAllSlots() end
+					if CharacterFrame and CharacterFrame:IsShown() then
+						self:UpdateAllSlots()
+					end
 				end,
 			},
 			minLevel = {
@@ -415,10 +540,14 @@ function GearCheck:GetOptions()
 				max = GetMaxLevelForPlayerExpansion(),
 				step = 1,
 				width = "full",
-				get = function() return self.db.minLevel end,
+				get = function()
+					return self.db.minLevel
+				end,
 				set = function(_, value)
 					self.db.minLevel = value
-					if CharacterFrame and CharacterFrame:IsShown() then self:UpdateAllSlots() end
+					if CharacterFrame and CharacterFrame:IsShown() then
+						self:UpdateAllSlots()
+					end
 				end,
 			},
 		},

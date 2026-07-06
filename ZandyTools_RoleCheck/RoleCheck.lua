@@ -45,17 +45,18 @@ function RoleCheck:OnLFGRoleCheckShow()
 
 	local hasRole = false
 	for _, enabled in pairs(self.db.roles) do
-		if enabled then hasRole = true break end
+		if enabled then
+			hasRole = true
+			break
+		end
 	end
-	if not hasRole then return end
+	if not hasRole then
+		return
+	end
 
 	-- Set LFG roles: preserve leader flag, set configured roles
 	local leader = GetLFGRoles()
-	SetLFGRoles(leader,
-		self.db.roles.TANK or false,
-		self.db.roles.HEALER or false,
-		self.db.roles.DAMAGER or false
-	)
+	SetLFGRoles(leader, self.db.roles.TANK or false, self.db.roles.HEALER or false, self.db.roles.DAMAGER or false)
 	CompleteLFGRoleCheck(true)
 end
 

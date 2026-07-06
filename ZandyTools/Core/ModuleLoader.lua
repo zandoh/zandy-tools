@@ -72,9 +72,13 @@ end
 ]]
 function ZandyTools:InitializeModule(moduleName)
 	local module = self.modules[moduleName]
-	if not module then return end
+	if not module then
+		return
+	end
 
-	if module.initialized then return end
+	if module.initialized then
+		return
+	end
 
 	-- Call Initialize
 	if module.Initialize then
@@ -105,7 +109,9 @@ end
 ]]
 function ZandyTools:UnloadModule(moduleName)
 	local module = self.modules[moduleName]
-	if not module or not module.initialized then return end
+	if not module or not module.initialized then
+		return
+	end
 
 	if module.Disable then
 		pcall(module.Disable, module)
@@ -114,7 +120,6 @@ function ZandyTools:UnloadModule(moduleName)
 	module.initialized = false
 	module.enabled = false
 end
-
 
 --[[
 	Register a module (called by module addons when they load)
@@ -147,7 +152,6 @@ function ZandyTools:RegisterModule(moduleName, moduleTable)
 	return moduleTable
 end
 
-
 --[[
 	Register an event for a module
 
@@ -159,10 +163,10 @@ function ZandyTools.RegisterEvent(module, event, callback)
 	if not module._eventFrame then
 		module._eventFrame = CreateFrame("Frame")
 		module._eventFrame._handlers = {}
-		module._eventFrame:SetScript("OnEvent", function(self, event, ...)
-			local handler = self._handlers[event]
+		module._eventFrame:SetScript("OnEvent", function(self, firedEvent, ...)
+			local handler = self._handlers[firedEvent]
 			if handler then
-				handler(module, event, ...)
+				handler(module, firedEvent, ...)
 			end
 		end)
 	end
