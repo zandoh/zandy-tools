@@ -26,7 +26,7 @@ ZandyTools.modules = {}
 	Called by Ace3 when the addon is first loaded
 ]]
 function ZandyTools:OnInitialize()
-	self:Print("Initializing v" .. self.Version)
+	self:Print("Initializing " .. self.Version)
 
 	-- Initialize database (will be loaded by Database.lua)
 	self:InitializeDatabase()
