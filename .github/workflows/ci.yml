@@ -128,10 +128,11 @@ jobs:
 
       - name: Install emmylua_check
         run: |
-          curl -sSfL https://github.com/EmmyLuaLs/emmylua-analyzer-rust/releases/download/0.23.2/emmylua_check-linux-x64.tar.gz | tar xz -C /tmp
+          mkdir -p /tmp/emmylua
+          curl -sSfL https://github.com/EmmyLuaLs/emmylua-analyzer-rust/releases/download/0.23.2/emmylua_check-linux-x64.tar.gz | tar xz -C /tmp/emmylua
 
       - name: Run emmylua_check
-        run: /tmp/emmylua_check --warnings-as-errors .
+        run: /tmp/emmylua/emmylua_check --warnings-as-errors .
 
   package-test:
     name: Test Package Creation
