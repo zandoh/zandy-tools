@@ -115,9 +115,9 @@ jobs:
 
       - name: Notify Discord
         if: success()
-        uses: zandoh/tonk/actions/discord-notify@431fe63114436fce99f22f7111ba149cc724aca1 # v1.0.0
+        uses: zandoh/tonk/actions/discord-notify@6f8926d2e52ef649429a94236d7cfc1a340970ed # v1.0.1
         with:
-          webhook-url: ${{ steps.announce.outputs.env == 'test' && secrets.DISCORD_WEBHOOK_TEST || secrets.DISCORD_WEBHOOK }}
+          webhook-url: ${{ steps.announce.outputs.env == 'test' && secrets.TONK_DISCORD_WEBHOOK_TEST || secrets.TONK_DISCORD_WEBHOOK }}
           title: "${{ steps.announce.outputs.emoji }} ZandyTools ${{ steps.announce.outputs.tag }} Released!"
           description: ${{ steps.announce.outputs.body }}
           url: https://github.com/${{ github.repository }}/releases/tag/${{ steps.announce.outputs.tag }}

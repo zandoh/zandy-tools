@@ -73,9 +73,9 @@ jobs:
 
       - name: Notify Discord
         if: steps.patch.outputs.notify == 'true'
-        uses: zandoh/tonk/actions/discord-notify@431fe63114436fce99f22f7111ba149cc724aca1 # v1.0.0
+        uses: zandoh/tonk/actions/discord-notify@6f8926d2e52ef649429a94236d7cfc1a340970ed # v1.0.1
         with:
-          webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
+          webhook-url: ${{ secrets.TONK_DISCORD_WEBHOOK }}
           title: "🩹 New WoW patch: ${{ steps.patch.outputs.semver }}"
           description: "Interface `${{ steps.patch.outputs.iface }}` is live but the addon TOCs are behind. Tracking issue: ${{ steps.patch.outputs.issue_url }}"
           url: ${{ steps.patch.outputs.issue_url }}

@@ -1,5 +1,5 @@
 # CI/Release status and issue activity to Discord via the shared tonk layer
-# (secret: DISCORD_WEBHOOK). Failures and back-to-green recoveries arrive via
+# (secret: TONK_DISCORD_WEBHOOK). Failures and back-to-green recoveries arrive via
 # workflow_run, so a run that dies before an inline notify step would have
 # executed still reports. Personality and toggles: .github/discord.yml
 name: tonk
@@ -18,9 +18,9 @@ jobs:
     if: github.event_name == 'workflow_run'
     permissions:
       actions: read # recovery detection reads previous run conclusions
-    uses: zandoh/tonk/.github/workflows/notify.yml@431fe63114436fce99f22f7111ba149cc724aca1 # v1.0.0
+    uses: zandoh/tonk/.github/workflows/notify.yml@6f8926d2e52ef649429a94236d7cfc1a340970ed # v1.0.1
     secrets:
-      webhook: ${{ secrets.DISCORD_WEBHOOK }}
+      webhook: ${{ secrets.TONK_DISCORD_WEBHOOK }}
 
   issue-activity:
     name: Notify issue activity
@@ -29,9 +29,9 @@ jobs:
     permissions: {}
     steps:
       - name: Send Discord notification
-        uses: zandoh/tonk/actions/discord-notify@431fe63114436fce99f22f7111ba149cc724aca1 # v1.0.0
+        uses: zandoh/tonk/actions/discord-notify@6f8926d2e52ef649429a94236d7cfc1a340970ed # v1.0.1
         with:
-          webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
+          webhook-url: ${{ secrets.TONK_DISCORD_WEBHOOK }}
           title: "${{ github.event.action == 'reopened' && '🔁' || '🐛' }} Issue #${{ github.event.issue.number }} ${{ github.event.action }}: ${{ github.event.issue.title }}"
           # Single space on an empty body keeps the action's default
           # repo·branch·sha description out of issue embeds.
