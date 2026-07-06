@@ -1,0 +1,60 @@
+name: Discord Notifications
+
+on:
+  issues:
+    types: [opened, reopened]
+
+permissions: {}
+
+jobs:
+  issue-activity:
+    name: Notify issue activity
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Discord notification
+        env:
+          WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL_PROD }}
+          ACTION: ${{ github.event.action }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+          ISSUE_AUTHOR: ${{ github.event.issue.user.login }}
+        run: |
+          if [ -z "$WEBHOOK_URL" ]; then
+            echo "::warning::DISCORD_WEBHOOK_URL_PROD not set. Skipping notification."
+            exit 0
+          fi
+
+          if [ "$ACTION" = "reopened" ]; then
+            EMOJI="🔁"
+            VERB="reopened"
+          else
+            EMOJI="🐛"
+            VERB="opened"
+          fi
+
+          # Truncate to Discord's 4096 char embed description limit
+          BODY="$ISSUE_BODY"
+          if [ "${#BODY}" -gt 4096 ]; then
+            BODY="${BODY:0:4093}..."
+          fi
+
+          PAYLOAD=$(jq -nc \
+            --arg title "${EMOJI} Issue #${ISSUE_NUMBER} ${VERB}: ${ISSUE_TITLE}" \
+            --arg desc "$BODY" \
+            --arg url "$ISSUE_URL" \
+            --arg footer "by ${ISSUE_AUTHOR}" \
+            '{
+              embeds: [{
+                title: ($title | .[0:256]),
+                description: $desc,
+                url: $url,
+                color: 16750899,
+                footer: { text: $footer }
+              }]
+            }')
+
+          curl -sf -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            "$WEBHOOK_URL"

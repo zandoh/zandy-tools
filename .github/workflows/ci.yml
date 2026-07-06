@@ -114,6 +114,37 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Notify Discord on secret detection
+        if: failure()
+        env:
+          WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL_PROD }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: |
+          if [ -z "$WEBHOOK_URL" ]; then
+            echo "::warning::DISCORD_WEBHOOK_URL_PROD not set. Skipping notification."
+            exit 0
+          fi
+
+          # Intentionally no finding details here — never forward potential
+          # secrets to Discord. Details live in the run logs only.
+          PAYLOAD=$(jq -nc \
+            --arg title "🚨 gitleaks flagged potential secrets on ${BRANCH}" \
+            --arg desc "Review the run logs and rotate anything exposed before doing anything else." \
+            --arg url "$RUN_URL" \
+            '{
+              embeds: [{
+                title: $title,
+                description: $desc,
+                url: $url,
+                color: 15548997
+              }]
+            }')
+
+          curl -sf -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            "$WEBHOOK_URL"
+
   type-check:
     name: Type check (emmylua, advisory)
     runs-on: ubuntu-latest
@@ -156,3 +187,111 @@ jobs:
 
       - name: Create test package
         run: ./release.sh -d -z
+
+  notify-recovered:
+    name: Notify Discord on recovery
+    runs-on: ubuntu-latest
+    needs:
+      - lint
+      - format
+      - toc-graph
+      - addon-security
+      - workflow-security
+      - secret-scan
+      - package-test
+    if: success() && github.event_name == 'push'
+    permissions:
+      actions: read
+    steps:
+      - name: Notify if previous run failed
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL_PROD }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          # The current run is still in_progress, so the most recent completed
+          # push run on this branch is the previous one.
+          PREV=$(gh api "repos/${REPO}/actions/workflows/ci.yml/runs?branch=${BRANCH}&event=push&status=completed&per_page=1" \
+            --jq '.workflow_runs[0].conclusion // ""')
+
+          if [ "$PREV" != "failure" ]; then
+            echo "Previous run conclusion: '${PREV:-none}'. No recovery to report."
+            exit 0
+          fi
+
+          if [ -z "$WEBHOOK_URL" ]; then
+            echo "::warning::DISCORD_WEBHOOK_URL_PROD not set. Skipping notification."
+            exit 0
+          fi
+
+          PAYLOAD=$(jq -nc \
+            --arg title "✅ CI back to green on ${BRANCH}" \
+            --arg url "$RUN_URL" \
+            '{
+              embeds: [{
+                title: $title,
+                url: $url,
+                color: 5763719
+              }]
+            }')
+
+          curl -sf -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            "$WEBHOOK_URL"
+
+  notify-failure:
+    name: Notify Discord on failure
+    runs-on: ubuntu-latest
+    needs:
+      - lint
+      - format
+      - toc-graph
+      - addon-security
+      - workflow-security
+      - secret-scan
+      - package-test
+    if: failure()
+    permissions: {}
+    steps:
+      - name: Send Discord notification
+        env:
+          WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL_PROD }}
+          BRANCH: ${{ github.head_ref || github.ref_name }}
+          EVENT_NAME: ${{ github.event_name }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          if [ -z "$WEBHOOK_URL" ]; then
+            echo "::warning::DISCORD_WEBHOOK_URL_PROD not set. Skipping notification."
+            exit 0
+          fi
+
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            DESC="$PR_TITLE"
+          else
+            # First line of the commit message only
+            DESC="${COMMIT_MSG%%$'\n'*}"
+          fi
+
+          PAYLOAD=$(jq -nc \
+            --arg title "❌ CI failed on ${BRANCH}" \
+            --arg desc "$DESC" \
+            --arg url "$RUN_URL" \
+            --arg footer "triggered by ${ACTOR}" \
+            '{
+              embeds: [{
+                title: $title,
+                description: $desc,
+                url: $url,
+                color: 15548997,
+                footer: { text: $footer }
+              }]
+            }')
+
+          curl -sf -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            "$WEBHOOK_URL"

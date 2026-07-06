@@ -140,3 +140,33 @@ jobs:
           curl -sf -H "Content-Type: application/json" \
             -d "$PAYLOAD" \
             "$WEBHOOK_URL"
+
+      - name: Notify Discord on failure
+        if: failure()
+        env:
+          WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL_PROD }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ -z "$WEBHOOK_URL" ]; then
+            echo "::warning::DISCORD_WEBHOOK_URL_PROD not set. Skipping notification."
+            exit 0
+          fi
+
+          TAG="${GITHUB_REF_NAME}"
+
+          PAYLOAD=$(jq -nc \
+            --arg title "❌ Release ${TAG} failed" \
+            --arg desc "The release workflow did not complete. Check the run logs." \
+            --arg url "$RUN_URL" \
+            '{
+              embeds: [{
+                title: $title,
+                description: $desc,
+                url: $url,
+                color: 15548997
+              }]
+            }')
+
+          curl -sf -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            "$WEBHOOK_URL"

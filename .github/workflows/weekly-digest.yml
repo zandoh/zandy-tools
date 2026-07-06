@@ -1,0 +1,61 @@
+name: Weekly Issue Digest
+
+on:
+  schedule:
+    # Mondays 14:00 UTC (~9-10am ET)
+    - cron: '0 14 * * 1'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  digest:
+    name: Post open-issue digest
+    runs-on: ubuntu-latest
+    permissions:
+      issues: read
+    steps:
+      - name: Send digest to Discord
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL_PROD }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [ -z "$WEBHOOK_URL" ]; then
+            echo "::warning::DISCORD_WEBHOOK_URL_PROD not set. Skipping notification."
+            exit 0
+          fi
+
+          # Exclude PRs, which the issues API also returns
+          ISSUES=$(gh api "repos/${REPO}/issues?state=open&per_page=100" \
+            --jq '[.[] | select(.pull_request == null)]')
+          COUNT=$(jq 'length' <<<"$ISSUES")
+
+          if [ "$COUNT" -eq 0 ]; then
+            echo "No open issues; skipping digest."
+            exit 0
+          fi
+
+          DESC=$(jq -r '.[] | "- [#\(.number)](\(.html_url)) \(.title) — opened \(.created_at[:10])"' <<<"$ISSUES")
+
+          # Truncate to Discord's 4096 char embed description limit
+          if [ "${#DESC}" -gt 4096 ]; then
+            DESC="${DESC:0:4093}..."
+          fi
+
+          PAYLOAD=$(jq -nc \
+            --arg title "📋 Weekly digest: ${COUNT} open issue(s)" \
+            --arg desc "$DESC" \
+            --arg url "https://github.com/${REPO}/issues" \
+            '{
+              embeds: [{
+                title: $title,
+                description: $desc,
+                url: $url,
+                color: 3447003
+              }]
+            }')
+
+          curl -sf -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            "$WEBHOOK_URL"

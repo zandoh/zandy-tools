@@ -1,0 +1,87 @@
+name: WoW Patch Watch
+
+on:
+  schedule:
+    # Daily, shortly after the usual Tuesday US patch window
+    - cron: '0 23 * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  check-interface:
+    name: Check for new WoW patch
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Compare live version against TOCs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL_PROD }}
+          REPO: ${{ github.repository }}
+        run: |
+          VERSION=$(curl -sf "https://wago.tools/api/builds" | jq -r '.wow[0].version // ""')
+          if ! printf '%s' "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+'; then
+            echo "::error::Could not determine live WoW version (got: ${VERSION})"
+            exit 1
+          fi
+
+          SEMVER=$(printf '%s' "$VERSION" | cut -d. -f1-3)
+          LIVE_IFACE=$(printf '%s' "$SEMVER" | awk -F. '{printf "%d%02d%02d", $1, $2, $3}')
+          echo "Live retail version: ${VERSION} (Interface ${LIVE_IFACE})"
+
+          STALE=""
+          for f in */*.toc; do
+            TOC_IFACE=$(grep -h '^## Interface' "$f" | tr ',' '\n' | grep -oE '[0-9]+' | sort -n | tail -1)
+            if [ -n "$TOC_IFACE" ] && [ "$TOC_IFACE" -lt "$LIVE_IFACE" ]; then
+              echo "${f}: Interface ${TOC_IFACE} is behind ${LIVE_IFACE}"
+              STALE="${STALE}${f} (${TOC_IFACE})"$'\n'
+            fi
+          done
+
+          if [ -z "$STALE" ]; then
+            echo "All TOCs current."
+            exit 0
+          fi
+
+          # Dedupe: the tracking issue doubles as the "already notified" marker
+          TITLE="chore: bump interface version to ${SEMVER}"
+          EXISTING=$(gh issue list -R "$REPO" --state open --search "\"${TITLE}\" in:title" --json number --jq 'length')
+          if [ "$EXISTING" -gt 0 ]; then
+            echo "Issue already open for ${SEMVER}; skipping notification."
+            exit 0
+          fi
+
+          BODY=$(printf 'WoW retail is now **%s** (Interface `%s`). Stale TOC files:\n\n```\n%s```' \
+            "$VERSION" "$LIVE_IFACE" "$STALE")
+          ISSUE_URL=$(gh issue create -R "$REPO" --title "$TITLE" --body "$BODY")
+          echo "Opened tracking issue: ${ISSUE_URL}"
+
+          if [ -z "$WEBHOOK_URL" ]; then
+            echo "::warning::DISCORD_WEBHOOK_URL_PROD not set. Skipping notification."
+            exit 0
+          fi
+
+          PAYLOAD=$(jq -nc \
+            --arg title "🩹 New WoW patch: ${SEMVER}" \
+            --arg desc "Interface \`${LIVE_IFACE}\` is live but the addon TOCs are behind. Tracking issue: ${ISSUE_URL}" \
+            --arg url "$ISSUE_URL" \
+            '{
+              embeds: [{
+                title: $title,
+                description: $desc,
+                url: $url,
+                color: 16750899
+              }]
+            }')
+
+          curl -sf -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            "$WEBHOOK_URL"
