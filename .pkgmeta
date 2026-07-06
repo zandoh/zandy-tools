@@ -13,12 +13,17 @@ externals:
 ignore:
   - .github
   - docs
+  - scripts
   - .vscode
   - .editorconfig
+  - .emmyrc.json
   - .gitignore
+  - .luacheckrc
   - .pkgmeta
+  - .styluaignore
   - Makefile
   - quickstart.sh
+  - stylua.toml
   - "*.md"
 
 move-folders:
