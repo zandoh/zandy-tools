@@ -12,6 +12,7 @@ externals:
 
 ignore:
   - .github
+  - docs
   - .vscode
   - .editorconfig
   - .gitignore
