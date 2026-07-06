@@ -1,4 +1,4 @@
-.PHONY: help link unlink package clean new-module dev check watch install-deps
+.PHONY: help link unlink package clean new-module dev check fmt watch install-deps
 
 # Default WoW addon directory (can be overridden)
 WOW_ADDON_DIR ?= $(HOME)/Applications/World\ of\ Warcraft/_retail_/Interface/AddOns
@@ -22,7 +22,8 @@ help:
 	@echo "  $(COLOR_GREEN)make clean$(COLOR_RESET)        - Clean build artifacts"
 	@echo "  $(COLOR_GREEN)make new-module$(COLOR_RESET)   - Create a new module from template"
 	@echo "  $(COLOR_GREEN)make dev$(COLOR_RESET)          - Set up development environment"
-	@echo "  $(COLOR_GREEN)make check$(COLOR_RESET)        - Run syntax and quality checks"
+	@echo "  $(COLOR_GREEN)make check$(COLOR_RESET)        - Run lint, format, and TOC checks"
+	@echo "  $(COLOR_GREEN)make fmt$(COLOR_RESET)          - Format Lua files with StyLua"
 	@echo "  $(COLOR_GREEN)make watch$(COLOR_RESET)        - Watch for file changes and run checks"
 	@echo "  $(COLOR_GREEN)make install-deps$(COLOR_RESET) - Install development dependencies"
 	@echo ""
@@ -96,16 +97,25 @@ check:
 	@echo "$(COLOR_YELLOW)Running checks...$(COLOR_RESET)"
 	@if command -v luacheck >/dev/null 2>&1; then \
 		echo "Running luacheck..."; \
-		luacheck . --exclude-files 'Libs/' '.release/' || true; \
+		luacheck . -q; \
 	else \
 		echo "$(COLOR_YELLOW)luacheck not installed, skipping Lua validation$(COLOR_RESET)"; \
 		echo "Install with: luarocks install luacheck"; \
 	fi
-	@if [ ! -f "ZandyTools.toc" ]; then \
-		echo "$(COLOR_YELLOW)Error: ZandyTools.toc not found$(COLOR_RESET)"; \
-		exit 1; \
+	@if command -v stylua >/dev/null 2>&1; then \
+		echo "Running stylua..."; \
+		stylua --check .; \
+	else \
+		echo "$(COLOR_YELLOW)stylua not installed, skipping format check$(COLOR_RESET)"; \
+		echo "Install with: brew install stylua"; \
 	fi
+	@./scripts/check-toc.sh
 	@echo "$(COLOR_GREEN)✓ Checks complete$(COLOR_RESET)"
+
+fmt:
+	@echo "$(COLOR_YELLOW)Formatting Lua files...$(COLOR_RESET)"
+	@stylua .
+	@echo "$(COLOR_GREEN)✓ Formatting complete$(COLOR_RESET)"
 
 watch:
 	@echo "$(COLOR_YELLOW)Watching for changes... (Ctrl+C to stop)$(COLOR_RESET)"

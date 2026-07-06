@@ -47,7 +47,8 @@ Clone the repository and symlink it into your AddOns directory:
 ```sh
 make dev                                  # install deps check + symlink
 make link WOW_ADDON_DIR=/path/to/AddOns   # custom WoW location
-make check                                # run luacheck and TOC validation
+make check                                # run luacheck, stylua, and TOC graph checks
+make fmt                                  # format Lua sources with StyLua
 make package                              # build a release zip (BigWigsMods packager)
 ```
 
