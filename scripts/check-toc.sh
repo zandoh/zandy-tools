@@ -18,9 +18,13 @@ for toc in */*.toc; do
 	# File entries: strip comments, blank lines, CR, trailing spaces; \ -> /
 	entries=$(grep -vE '^[[:space:]]*(#|$)' "$toc" | tr -d '\r' | tr '\\' '/' | sed 's/[[:space:]]*$//')
 
-	# 1. Broken references
+	# 1. Broken references. Libs/ entries are packager externals (.pkgmeta),
+	# absent from a fresh checkout, so only verify them when Libs/ exists.
 	while IFS= read -r entry; do
 		[ -z "$entry" ] && continue
+		case "$entry" in
+		Libs/*) [ -d "$dir/Libs" ] || continue ;;
+		esac
 		if [ ! -f "$dir/$entry" ]; then
 			echo "BROKEN REFERENCE: $toc lists '$entry' but $dir/$entry does not exist"
 			fail=1
