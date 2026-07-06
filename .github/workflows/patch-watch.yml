@@ -22,9 +22,9 @@ jobs:
           persist-credentials: false
 
       - name: Compare live version against TOCs
+        id: patch
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL_PROD }}
           REPO: ${{ github.repository }}
         run: |
           VERSION=$(curl -sf "https://wago.tools/api/builds" | jq -r '.wow[0].version // ""')
@@ -64,24 +64,19 @@ jobs:
           ISSUE_URL=$(gh issue create -R "$REPO" --title "$TITLE" --body "$BODY")
           echo "Opened tracking issue: ${ISSUE_URL}"
 
-          if [ -z "$WEBHOOK_URL" ]; then
-            echo "::warning::DISCORD_WEBHOOK_URL_PROD not set. Skipping notification."
-            exit 0
-          fi
+          {
+            echo "notify=true"
+            echo "semver=${SEMVER}"
+            echo "iface=${LIVE_IFACE}"
+            echo "issue_url=${ISSUE_URL}"
+          } >> "$GITHUB_OUTPUT"
 
-          PAYLOAD=$(jq -nc \
-            --arg title "🩹 New WoW patch: ${SEMVER}" \
-            --arg desc "Interface \`${LIVE_IFACE}\` is live but the addon TOCs are behind. Tracking issue: ${ISSUE_URL}" \
-            --arg url "$ISSUE_URL" \
-            '{
-              embeds: [{
-                title: $title,
-                description: $desc,
-                url: $url,
-                color: 16750899
-              }]
-            }')
-
-          curl -sf -H "Content-Type: application/json" \
-            -d "$PAYLOAD" \
-            "$WEBHOOK_URL"
+      - name: Notify Discord
+        if: steps.patch.outputs.notify == 'true'
+        uses: zandoh/tonk/actions/discord-notify@431fe63114436fce99f22f7111ba149cc724aca1 # v1.0.0
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
+          title: "🩹 New WoW patch: ${{ steps.patch.outputs.semver }}"
+          description: "Interface `${{ steps.patch.outputs.iface }}` is live but the addon TOCs are behind. Tracking issue: ${{ steps.patch.outputs.issue_url }}"
+          url: ${{ steps.patch.outputs.issue_url }}
+          color: "16750899"

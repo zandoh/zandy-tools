@@ -15,47 +15,35 @@ jobs:
     permissions:
       issues: read
     steps:
-      - name: Send digest to Discord
+      - name: Collect open issues
+        id: digest
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL_PROD }}
           REPO: ${{ github.repository }}
         run: |
-          if [ -z "$WEBHOOK_URL" ]; then
-            echo "::warning::DISCORD_WEBHOOK_URL_PROD not set. Skipping notification."
-            exit 0
-          fi
-
           # Exclude PRs, which the issues API also returns
           ISSUES=$(gh api "repos/${REPO}/issues?state=open&per_page=100" \
             --jq '[.[] | select(.pull_request == null)]')
           COUNT=$(jq 'length' <<<"$ISSUES")
+          echo "count=$COUNT" >> "$GITHUB_OUTPUT"
 
           if [ "$COUNT" -eq 0 ]; then
             echo "No open issues; skipping digest."
             exit 0
           fi
 
-          DESC=$(jq -r '.[] | "- [#\(.number)](\(.html_url)) \(.title) — opened \(.created_at[:10])"' <<<"$ISSUES")
+          {
+            echo 'desc<<TONK_DIGEST_EOF'
+            jq -r '.[] | "- [#\(.number)](\(.html_url)) \(.title) — opened \(.created_at[:10])"' <<<"$ISSUES"
+            echo TONK_DIGEST_EOF
+          } >> "$GITHUB_OUTPUT"
 
-          # Truncate to Discord's 4096 char embed description limit
-          if [ "${#DESC}" -gt 4096 ]; then
-            DESC="${DESC:0:4093}..."
-          fi
-
-          PAYLOAD=$(jq -nc \
-            --arg title "📋 Weekly digest: ${COUNT} open issue(s)" \
-            --arg desc "$DESC" \
-            --arg url "https://github.com/${REPO}/issues" \
-            '{
-              embeds: [{
-                title: $title,
-                description: $desc,
-                url: $url,
-                color: 3447003
-              }]
-            }')
-
-          curl -sf -H "Content-Type: application/json" \
-            -d "$PAYLOAD" \
-            "$WEBHOOK_URL"
+      - name: Send digest to Discord
+        if: steps.digest.outputs.count != '0'
+        uses: zandoh/tonk/actions/discord-notify@431fe63114436fce99f22f7111ba149cc724aca1 # v1.0.0
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
+          title: "📋 Weekly digest: ${{ steps.digest.outputs.count }} open issue(s)"
+          description: ${{ steps.digest.outputs.desc }}
+          url: https://github.com/${{ github.repository }}/issues
+          color: "3447003"

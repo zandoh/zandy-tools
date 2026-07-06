@@ -1,0 +1,8 @@
+rules:
+  dangerous-triggers:
+    # tonk.yml listens on workflow_run by design: notifications must fire
+    # even when the watched run dies early. It checks out nothing from the
+    # triggering ref and grants only actions:read, so the usual
+    # workflow_run privilege-escalation surface doesn't apply.
+    ignore:
+      - tonk.yml

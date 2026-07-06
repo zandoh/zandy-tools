@@ -56,11 +56,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Notify Discord
+      - name: Build release announcement
         if: success()
+        id: announce
         env:
-          DISCORD_WEBHOOK_URL_PROD: ${{ secrets.DISCORD_WEBHOOK_URL_PROD }}
-          DISCORD_WEBHOOK_URL_TEST: ${{ secrets.DISCORD_WEBHOOK_URL_TEST }}
           DISCORD_ENV_INPUT: ${{ inputs.discord_env }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -75,19 +74,7 @@ jobs:
           else
             DISCORD_ENV="prod"
           fi
-
-          if [ "$DISCORD_ENV" = "prod" ]; then
-            WEBHOOK_URL="$DISCORD_WEBHOOK_URL_PROD"
-          else
-            WEBHOOK_URL="$DISCORD_WEBHOOK_URL_TEST"
-          fi
-
-          if [ -z "$WEBHOOK_URL" ]; then
-            echo "::warning::No Discord webhook URL set for env=${DISCORD_ENV}. Skipping notification."
-            exit 0
-          fi
-
-          echo "Sending Discord notification to ${DISCORD_ENV} channel"
+          echo "Announcing to the ${DISCORD_ENV} channel"
 
           # Get previous tag
           PREV_TAG=$(git tag --sort=-v:refname | grep '^v' | sed -n '2p')
@@ -114,59 +101,27 @@ jobs:
           fi
 
           # Fetch release notes from the GitHub Release
-          BODY=$(gh api "repos/${{ github.repository }}/releases/tags/${TAG}" --jq '.body // ""')
+          BODY=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '.body // ""')
 
-          # Truncate to Discord's 4096 char embed description limit
-          if [ "${#BODY}" -gt 4096 ]; then
-            BODY="${BODY:0:4093}..."
-          fi
+          {
+            echo "env=${DISCORD_ENV}"
+            echo "tag=${TAG}"
+            echo "emoji=${EMOJI}"
+            echo "color=${COLOR}"
+            echo 'body<<TONK_NOTES_EOF'
+            printf '%s\n' "$BODY"
+            echo TONK_NOTES_EOF
+          } >> "$GITHUB_OUTPUT"
 
-          # Build the JSON payload with jq to handle escaping
-          RELEASE_URL="https://github.com/${{ github.repository }}/releases/tag/${TAG}"
-          PAYLOAD=$(jq -nc \
-            --arg title "${EMOJI} ZandyTools ${TAG} Released!" \
-            --arg desc "$BODY" \
-            --arg url "$RELEASE_URL" \
-            --argjson color "$COLOR" \
-            '{
-              embeds: [{
-                title: $title,
-                description: $desc,
-                url: $url,
-                color: $color
-              }]
-            }')
+      - name: Notify Discord
+        if: success()
+        uses: zandoh/tonk/actions/discord-notify@431fe63114436fce99f22f7111ba149cc724aca1 # v1.0.0
+        with:
+          webhook-url: ${{ steps.announce.outputs.env == 'test' && secrets.DISCORD_WEBHOOK_TEST || secrets.DISCORD_WEBHOOK }}
+          title: "${{ steps.announce.outputs.emoji }} ZandyTools ${{ steps.announce.outputs.tag }} Released!"
+          description: ${{ steps.announce.outputs.body }}
+          url: https://github.com/${{ github.repository }}/releases/tag/${{ steps.announce.outputs.tag }}
+          color: ${{ steps.announce.outputs.color }}
 
-          curl -sf -H "Content-Type: application/json" \
-            -d "$PAYLOAD" \
-            "$WEBHOOK_URL"
-
-      - name: Notify Discord on failure
-        if: failure()
-        env:
-          WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL_PROD }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: |
-          if [ -z "$WEBHOOK_URL" ]; then
-            echo "::warning::DISCORD_WEBHOOK_URL_PROD not set. Skipping notification."
-            exit 0
-          fi
-
-          TAG="${GITHUB_REF_NAME}"
-
-          PAYLOAD=$(jq -nc \
-            --arg title "❌ Release ${TAG} failed" \
-            --arg desc "The release workflow did not complete. Check the run logs." \
-            --arg url "$RUN_URL" \
-            '{
-              embeds: [{
-                title: $title,
-                description: $desc,
-                url: $url,
-                color: 15548997
-              }]
-            }')
-
-          curl -sf -H "Content-Type: application/json" \
-            -d "$PAYLOAD" \
-            "$WEBHOOK_URL"
+      # Release failures are announced by tonk.yml (workflow_run on this
+      # workflow), which also reports back-to-green on the next good run.

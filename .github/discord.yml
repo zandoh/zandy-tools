@@ -1,0 +1,6 @@
+# tonk notification personality — https://github.com/zandoh/tonk
+# No username: posts keep the webhook's default identity, as before.
+notify:
+  failure: true
+  recovery: true
+  pull-requests: true # PR failures ping on purpose in this repo
