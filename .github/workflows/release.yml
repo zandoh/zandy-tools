@@ -4,16 +4,6 @@ on:
   push:
     tags:
       - 'v*'
-  workflow_dispatch:
-    inputs:
-      discord_env:
-        description: 'Discord webhook environment'
-        required: true
-        default: 'test'
-        type: choice
-        options:
-          - test
-          - prod
 
 permissions:
   contents: write
@@ -60,21 +50,10 @@ jobs:
         if: success()
         id: announce
         env:
-          DISCORD_ENV_INPUT: ${{ inputs.discord_env }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="${GITHUB_REF_NAME}"
           VERSION="${TAG#v}"
-
-          # Determine discord environment:
-          #   - Manual dispatch: use the selected input
-          #   - Tag push: always prod
-          if [ -n "$DISCORD_ENV_INPUT" ]; then
-            DISCORD_ENV="$DISCORD_ENV_INPUT"
-          else
-            DISCORD_ENV="prod"
-          fi
-          echo "Announcing to the ${DISCORD_ENV} channel"
 
           # Get previous tag
           PREV_TAG=$(git tag --sort=-v:refname | grep '^v' | sed -n '2p')
@@ -104,7 +83,6 @@ jobs:
           BODY=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '.body // ""')
 
           {
-            echo "env=${DISCORD_ENV}"
             echo "tag=${TAG}"
             echo "emoji=${EMOJI}"
             echo "color=${COLOR}"
@@ -117,7 +95,7 @@ jobs:
         if: success()
         uses: zandoh/tonk/actions/discord-notify@6f8926d2e52ef649429a94236d7cfc1a340970ed # v1.0.1
         with:
-          webhook-url: ${{ steps.announce.outputs.env == 'test' && secrets.TONK_DISCORD_WEBHOOK_TEST || secrets.TONK_DISCORD_WEBHOOK }}
+          webhook-url: ${{ secrets.TONK_DISCORD_WEBHOOK }}
           title: "${{ steps.announce.outputs.emoji }} ZandyTools ${{ steps.announce.outputs.tag }} Released!"
           description: ${{ steps.announce.outputs.body }}
           url: https://github.com/${{ github.repository }}/releases/tag/${{ steps.announce.outputs.tag }}
