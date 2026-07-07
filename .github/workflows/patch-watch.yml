@@ -73,7 +73,7 @@ jobs:
 
       - name: Notify Discord
         if: steps.patch.outputs.notify == 'true'
-        uses: zandoh/tonk/actions/discord-notify@6f8926d2e52ef649429a94236d7cfc1a340970ed # v1.0.1
+        uses: zandoh/tonk@dc0f2ab7c2ab790b890c8e20749ac83992063bff # v2.0.0
         with:
           webhook-url: ${{ secrets.TONK_DISCORD_WEBHOOK }}
           title: "🩹 New WoW patch: ${{ steps.patch.outputs.semver }}"

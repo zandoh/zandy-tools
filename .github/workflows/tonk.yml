@@ -19,7 +19,7 @@ jobs:
     permissions:
       actions: read # recovery detection reads previous run conclusions
       contents: read # reads .github/discord.yml
-    uses: zandoh/tonk/.github/workflows/notify.yml@9893ce965b95fdc3a570f8dd9040339da1b9bf0b # v1.0.2
+    uses: zandoh/tonk/.github/workflows/notify.yml@dc0f2ab7c2ab790b890c8e20749ac83992063bff # v2.0.0
     secrets:
       webhook: ${{ secrets.TONK_DISCORD_WEBHOOK }}
 
@@ -30,7 +30,7 @@ jobs:
     permissions: {}
     steps:
       - name: Send Discord notification
-        uses: zandoh/tonk/actions/discord-notify@9893ce965b95fdc3a570f8dd9040339da1b9bf0b # v1.0.2
+        uses: zandoh/tonk@dc0f2ab7c2ab790b890c8e20749ac83992063bff # v2.0.0
         with:
           webhook-url: ${{ secrets.TONK_DISCORD_WEBHOOK }}
           title: "${{ github.event.action == 'reopened' && '🔁' || '🐛' }} Issue #${{ github.event.issue.number }} ${{ github.event.action }}: ${{ github.event.issue.title }}"
