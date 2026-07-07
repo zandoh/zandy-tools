@@ -1,5 +1,5 @@
 # tonk notification personality — https://github.com/zandoh/tonk
-# No username: posts keep the webhook's default identity, as before.
+# Posts use tonk's brand defaults (username "tonk" + bell icon) as of v2.1.0.
 notify:
   failure: true
   recovery: true
