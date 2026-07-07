@@ -5,13 +5,88 @@ on:
     tags:
       - 'v*'
 
-permissions:
-  contents: write
+permissions: {}
+
+# Queue concurrent tag pushes instead of cancelling — cancelling mid-upload
+# leaves CurseForge/Wago/GitHub out of sync.
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
+  verify-ci:
+    name: Verify CI is green
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: read
+
+    steps:
+      - name: Wait for required CI checks on the tagged commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          required_checks=$(cat <<'EOF'
+          Lint (luacheck)
+          Format (StyLua)
+          TOC graph (dead files)
+          Security (addon rules)
+          Security (workflows, zizmor)
+          Security (secrets, gitleaks)
+          Test Package Creation
+          EOF
+          )
+
+          # Poll every 30s for up to 20 minutes. Every required check must
+          # exist and be completed with conclusion success (latest run per
+          # name). A tag on a commit CI never saw must not release.
+          deadline=$(( $(date +%s) + 20 * 60 ))
+
+          while true; do
+            runs=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/check-runs?per_page=100" \
+              --paginate --jq '.check_runs[] | {name, status, conclusion, started_at}' | jq -s '.')
+
+            pending=0
+            failed=0
+            while IFS= read -r check; do
+              latest=$(printf '%s' "$runs" | jq -r --arg name "$check" \
+                '[.[] | select(.name == $name)] | sort_by(.started_at) | last // empty | "\(.status)/\(.conclusion)"')
+              if [ -z "$latest" ]; then
+                echo "  $check: no check run found yet"
+                pending=1
+              elif [ "$latest" = "completed/success" ]; then
+                echo "  $check: success"
+              elif [ "${latest%%/*}" = "completed" ]; then
+                echo "::error::required check '$check' completed with conclusion '${latest#*/}'"
+                failed=1
+              else
+                echo "  $check: ${latest%%/*}"
+                pending=1
+              fi
+            done <<< "$required_checks"
+
+            if [ "$failed" -ne 0 ]; then
+              echo "::error::CI is not green on $GITHUB_SHA — refusing to release"
+              exit 1
+            fi
+            if [ "$pending" -eq 0 ]; then
+              echo "All required CI checks are green on $GITHUB_SHA"
+              exit 0
+            fi
+            if [ "$(date +%s)" -ge "$deadline" ]; then
+              echo "::error::timed out after 20 minutes waiting for required CI checks on $GITHUB_SHA (missing or incomplete checks above)"
+              exit 1
+            fi
+            echo "Waiting 30s for CI checks to complete..."
+            sleep 30
+          done
+
   release:
     name: Release to CurseForge & Wago
     runs-on: ubuntu-latest
+    needs: verify-ci
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
